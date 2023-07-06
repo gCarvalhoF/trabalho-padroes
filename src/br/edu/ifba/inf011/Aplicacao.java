@@ -1,52 +1,68 @@
 package br.edu.ifba.inf011;
 
 import java.io.IOException;
+import java.util.Random;
 
-import br.edu.ifba.inf011.model.musica.*;
-import br.edu.ifba.inf011.model.player.Player;
-import br.edu.ifba.inf011.model.player.Playlist;
-import br.edu.ifba.inf011.model.player.PlayerObserver;
+import br.edu.ifba.inf011.model.decorator.*;
+import br.edu.ifba.inf011.model.iterator.Player;
+import br.edu.ifba.inf011.model.composite.Playlist;
+import br.edu.ifba.inf011.model.iterator.PlayerMode;
+import br.edu.ifba.inf011.model.iterator.PlayerIterator;
+import br.edu.ifba.inf011.model.observer.PlayerObserver;
 import br.edu.ifba.inf011.model.resources.ResourceLoader;
 
-public class Aplicacao {
+public class Aplicacao implements PlayerObserver {
 
-	private void musica() throws IOException {
+	private final Player player;
 
-		ResourceLoader.DIR_NAME = "/Users/gabrielfraga/coding/college_stuff/trabalho-padroes/src/br/edu/ifba/inf011/model/resources/data/";
+	public Aplicacao() {
+		this.player = new Player();
+		this.player.addObserver(this);
+	}
 
-		Musica musica =  new MusicaTraducaoPt(new MusicaLetra(new MusicaNotas(new MusicaTitulo("Lullaby"))));
-		Musica musica2 =  new MusicaTraducaoPt(new MusicaLetra(new MusicaNotas(new MusicaTitulo("GodSaveTheQueen"))));
-		Musica musica3 =  new MusicaTraducaoPt(new MusicaLetra(new MusicaNotas(new MusicaTitulo("ReelAroundFountain"))));
+	private void musica() throws IOException, InterruptedException {
+		var resource = ResourceLoader.instance();
+
+		Musica musica =  resource.createMusicaComLetraCifra("Lullaby");
+		Musica musica2 =  resource.createMusicaComLetraCifraTraducaoPt("GodSaveTheQueen", "pt");
+		Musica musica3 =  resource.createMusicaComLetraTraducaoPt("ReelAroundFountain", "pt");
+		Musica musica4 =  resource.createMusicaComCifra("GodSaveTheQueen");
 
 
 		Playlist playlist = new Playlist("Teste");
-		Playlist playlist2 = new Playlist("Tchurusbengo");
+		Playlist playlistTest = new Playlist("Tchurusbengo");
 
-		playlist2.insert(musica2);
+		playlistTest.insert(musica2);
+		playlistTest.insert(musica4);
 
-		Player player = new Player();
-
-		// Adicionando um observador ao Player
-		PlayerObserver observer = new PlayerObserver() {
-			@Override
-			public void update(Player player) {
-				// Implementar o que acontece quando o Player é atualizado
-				System.out.println("Player updated");
-			}
-		};
-		player.addObserver(observer);
-
-		player.insert(playlist2);
+		player.insert(playlistTest);
 		player.insert(musica3);
+		player.insert(musica);
 
-		// Execute as músicas e as playlists no Player
-		while(player.temProximo()) {
-			System.out.println(player.proximo().execute());
+		PlayerIterator iterator = player.createIterator();
+
+		while(iterator.temProximo()) {
+			System.out.println(iterator.proximo().execute());
+			Thread.sleep(1000);
+
+			int numero = new Random().nextInt(2,8);
+			if (numero % 5 == 0){
+				player.setMode(PlayerMode.RepeatAll);
+				iterator = player.createIterator();
+			}else if (numero % 7 == 0){
+				player.setMode(PlayerMode.RandomMode);
+				iterator = player.createIterator();
+			}
 		}
 	}
 
-	public static void main(String[] args) throws IOException{
+	public static void main(String[] args) throws IOException, InterruptedException {
 		Aplicacao app = new Aplicacao();
 		app.musica();
+	}
+
+	@Override
+	public void update(Player player) {
+		System.out.printf("\n-----------\nTocando no modo: %s!-----------\n", player.getMode());
 	}
 }
